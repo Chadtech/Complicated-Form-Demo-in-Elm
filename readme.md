@@ -4,7 +4,7 @@ This is a complicated form written in Elm.
 
 # Background
 
-Recently I consulted a group of developers that used an out-of-the-box solution for a form and it was leading to some problems for them. Ive seen that situation before. My recommendation was that if they want to scale their form code,or if they are having existing difficulties with it, that they should consider rewrite it from scratch.
+Recently I consulted a company that used an out-of-the-box solution for a form and it was leading to some problems for them. Ive seen that situation before. My recommendation was that if they want to scale their form code, or if what they have currently isnt working for them, that they should consider rewriteing it from scratch.
 
 # Why
 
