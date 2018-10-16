@@ -11,9 +11,9 @@ module Field exposing
     , view
     )
 
-{-| The field. Notice that the functions inside this
-function include view, update, and Msg, just
-like the classic functions in TEA.
+{-| Notice that the functions inside this
+module include view, update, and Msg, just
+like the classic values in TEA.
 
 This form architecture treats each field as a
 tiny sub-application with the same structure
