@@ -22,20 +22,22 @@ I think that in practice every form is different from every other form. Every di
 - Do field values change data type after validation?
 - What relationship do the field values have with the data type and structure of the submitted data?
 
-Problems arise with out-of-the-box form packages when they assumptions about what a form is supposed to be that vary from how you think about the form you want to implement. Furthermore, _you_ might even change your mind at some point, which means you should plan for having to go back and change things. Its much easier to change your own familiar and transparent implementation than to try and cope with an opaque package off the internet.
+Problems arise with out-of-the-box form packages when they assume things about what a form is supposed to be that vary from what you think the form should be. Furthermore, _you_ might even change your mind at some point, which means you should plan for having to go back and change things. Its much easier to change your own familiar and transparent implementation than to try and cope with an opaque package off the internet.
 
 # So whats this?
 
 This is a form, written in Elm. Its just meant to be an example of a fairly complicated form. While the UI is dead simple, and the form only has 6 fields, Ive intentionally added every bell and whistle to exaggerate its complexity. Heres the spec:
 
-- There are two pages, one for personal info and one for contact info
-- the last name field is required
-- the gender field is a drop down and its required
-- it is required for their to be an email or phone number
-- the phone field must validate on every key stroke
-- you cannot navigate between pages if there are any validation errors on that page
 - all the fields are dynamically decoded from json
 - all the pages are dynamically decoded from json
+- some text fields are required
+- some select fields are required
+- sometimes one of two fields are required
+- fields should validate when the user moves away from them
+- some fields need to get validated on every key stroke
+- you shouldnt be able to navigate between pages if there are any validation errors on that page
+- the form needs to be encodable to json
+
 
 # Architecture
 
