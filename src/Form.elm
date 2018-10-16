@@ -174,10 +174,10 @@ update : Msg -> Form -> Form
 update msg form =
     case msg of
         FieldMsg fieldName subMsg ->
-            form
-                |> mapField
-                    fieldName
-                    (Field.update subMsg)
+            mapField
+                fieldName
+                (Field.update subMsg)
+                form
 
 
 

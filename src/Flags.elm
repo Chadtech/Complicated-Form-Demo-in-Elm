@@ -8,8 +8,16 @@ import Form exposing (Form)
 import Json.Decode as D exposing (Decoder)
 
 
+
+-- TYPES --
+
+
 type alias Flags =
     { forms : Dict String Form }
+
+
+
+-- DECODER --
 
 
 decoder : Decoder Flags

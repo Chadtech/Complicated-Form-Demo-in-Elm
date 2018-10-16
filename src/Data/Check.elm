@@ -13,10 +13,16 @@ have been updated with those errors accordingly
 
 -}
 
+-- TYPES --
+
 
 type Check data
     = NoErrors
     | HasErrors data
+
+
+
+-- HELPERS --
 
 
 map : (a -> b) -> Check a -> Check b

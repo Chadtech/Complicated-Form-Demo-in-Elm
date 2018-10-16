@@ -31,6 +31,10 @@ type Submission field
     | Failed field
 
 
+
+-- HELPERS --
+
+
 mapField : (a -> b) -> Submission a -> Submission b
 mapField f submission =
     case submission of
