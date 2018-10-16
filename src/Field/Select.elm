@@ -3,13 +3,12 @@ module Field.Select exposing
     , Model
     , Msg
     , clearError
-    , contactPreference
-    , gender
+    , decoder
     , isEmpty
+    , name
+    , order
     , submit
-    , throwError
     , update
-    , validate
     , view
     )
 
@@ -25,9 +24,11 @@ import Html.Styled as Html
         )
 import Html.Styled.Attributes as Attrs
 import Html.Styled.Events as Events
-import Json.Decode as D
+import Json.Decode as D exposing (Decoder)
+import Json.Decode.Pipeline as JDP
 import Json.Encode as E
 import Style
+import Util exposing (requiredMark)
 import View.Error as Error
 
 
@@ -37,16 +38,27 @@ import View.Error as Error
 
 type alias Model =
     { value : Maybe String
+    , name : String
     , options : List String
     , label : String
     , error : Maybe Error
     , required : Bool
+    , order : Int
     }
+
+
+order : Model -> Int
+order =
+    .order
+
+
+name : Model -> String
+name =
+    .name
 
 
 type Msg
     = OptionSelected String
-    | SelectBlurred
 
 
 type Error
@@ -64,28 +76,18 @@ errorToString error =
 -- VALIDATION --
 
 
-throwError : Model -> Model
-throwError model =
-    case validate model of
-        Err newModel ->
-            newModel
-
-        Ok _ ->
-            model
-
-
-validate : Model -> Result Model String
-validate model =
+check : Model -> Model
+check model =
     case model.value of
         Just value ->
-            Ok value
+            model
 
         Nothing ->
             if model.required then
-                Err { model | error = Just MustSelectOne }
+                { model | error = Just MustSelectOne }
 
             else
-                Err model
+                model
 
 
 isEmpty : Model -> Bool
@@ -103,21 +105,24 @@ clearError model =
 
 
 submit : Model -> Submission Model
-submit model =
-    case validate model of
-        Ok value ->
-            ( model.label
+submit =
+    submitAfterCheck << check
+
+
+submitAfterCheck : Model -> Submission Model
+submitAfterCheck model =
+    case ( model.value, model.error ) of
+        ( _, Just error ) ->
+            Submission.Failed model
+
+        ( Just value, Nothing ) ->
+            ( model.name
             , E.string value
             )
                 |> Submission.Encoded
 
-        Err validatedModel ->
-            case validatedModel.error of
-                Just error ->
-                    Submission.Failed validatedModel
-
-                Nothing ->
-                    Submission.None
+        ( Nothing, Nothing ) ->
+            Submission.None
 
 
 
@@ -139,9 +144,6 @@ update msg model =
             else
                 { clearedModel | value = Nothing }
 
-        SelectBlurred ->
-            throwError model
-
 
 
 -- VIEW --
@@ -151,23 +153,16 @@ view : Model -> Html Msg
 view model =
     div
         [ Attrs.css [ Style.basicMargin ] ]
-        [ Html.text model.label
+        [ Html.text
+            (model.label ++ requiredMark model.required)
         , select
             [ Attrs.css [ Style.basicMargin ]
-            , onChange OptionSelected
+            , Events.onInput OptionSelected
             ]
             (viewOptions model)
         , Error.view
             (Maybe.map errorToString model.error)
         ]
-
-
-onChange : (String -> msg) -> Attribute msg
-onChange msgCtor =
-    D.string
-        |> D.at [ "target", "value" ]
-        |> D.map msgCtor
-        |> Events.on "change"
 
 
 viewOptions : Model -> List (Html Msg)
@@ -187,24 +182,35 @@ optionView currentValue str =
 
 
 
--- HARDCODED DATA --
+-- DECODER  --
 
 
-gender : Model
-gender =
-    { value = Nothing
-    , options = [ "male", "female" ]
-    , label = "Gender*"
-    , error = Nothing
-    , required = True
-    }
+decoder : Decoder Model
+decoder =
+    D.succeed Model
+        |> JDP.hardcoded Nothing
+        |> JDP.required "name" D.string
+        |> JDP.required "options" (D.list D.string)
+        |> JDP.required "name" labelDecoder
+        |> JDP.hardcoded Nothing
+        |> JDP.required "required" D.bool
+        |> JDP.hardcoded 30
 
 
-contactPreference : Model
-contactPreference =
-    { value = Nothing
-    , options = [ "phone", "email" ]
-    , label = "Preferred Means of Contact"
-    , error = Nothing
-    , required = False
-    }
+labelDecoder : Decoder String
+labelDecoder =
+    D.string
+        |> D.map labelFromName
+
+
+labelFromName : String -> String
+labelFromName name_ =
+    case name_ of
+        "gender" ->
+            "Gender"
+
+        "preferred-means-of-contact" ->
+            "Preferred Means of Contact"
+
+        _ ->
+            name_

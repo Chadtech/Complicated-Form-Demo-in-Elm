@@ -1,19 +1,39 @@
-module Data.Check exposing (Check(..), or)
+module Data.Check exposing
+    ( Check(..)
+    , fromResult
+    , map
+    )
+
+{-| Really no different from just a Maybe,
+except more expressive.
+
+A `Check` represents a verification that
+errors have been detected and and the `data`
+have been updated with those errors accordingly
+
+-}
 
 
-type Check d
+type Check data
     = NoErrors
-    | HasErrors d
+    | HasErrors data
 
 
-or : Check d -> Check d -> Check d
-or c0 c1 =
-    case ( c0, c1 ) of
-        ( HasErrors e0, _ ) ->
-            HasErrors e0
+map : (a -> b) -> Check a -> Check b
+map f check =
+    case check of
+        NoErrors ->
+            NoErrors
 
-        ( _, HasErrors e1 ) ->
-            HasErrors e1
+        HasErrors data ->
+            HasErrors (f data)
 
-        _ ->
+
+fromResult : Result e a -> Check e
+fromResult result =
+    case result of
+        Err error ->
+            HasErrors error
+
+        Ok _ ->
             NoErrors

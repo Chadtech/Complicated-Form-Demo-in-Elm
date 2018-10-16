@@ -2,18 +2,32 @@ module Field exposing
     ( Field(..)
     , Msg
     , clearError
+    , decoder
     , isEmpty
-    , isValid
+    , name
+    , order
     , submit
-    , throwError
     , update
     , view
     )
 
+{-| The field. Notice that the functions inside this
+function include view, update, and Msg, just
+like the classic functions in TEA.
+
+This form architecture treats each field as a
+tiny sub-application with the same structure
+as the entire program
+
+-}
+
+import Data.Check as Check exposing (Check)
 import Data.Submission as Submission exposing (Submission)
 import Field.Select as Select
 import Field.Text as Text
 import Html.Styled as Html exposing (Html)
+import Json.Decode as D exposing (Decoder)
+import Json.Decode.Pipeline
 import Json.Encode as E
 
 
@@ -21,6 +35,21 @@ import Json.Encode as E
 -- TYPES --
 
 
+{-| These are the two field types
+in this program. If you would like
+more field types its clearly scalable:
+just make a new module Field/X.elm, with
+its own view, update, Model, Msg, validate,
+isEmpty, and submit values.
+
+Other plausible Field types that would
+warrant their own field module:
+
+  - check box
+  - address
+  - password
+
+-}
 type Field
     = Text Text.Model
     | Select Select.Model
@@ -29,6 +58,26 @@ type Field
 type Msg
     = TextMsg Text.Msg
     | SelectMsg Select.Msg
+
+
+order : Field -> Int
+order field =
+    case field of
+        Text model ->
+            Text.order model
+
+        Select model ->
+            Select.order model
+
+
+name : Field -> String
+name field =
+    case field of
+        Text model ->
+            Text.name model
+
+        Select model ->
+            Select.name model
 
 
 
@@ -43,31 +92,6 @@ isEmpty field =
 
         Select model ->
             Select.isEmpty model
-
-
-isValid : Field -> Bool
-isValid field =
-    case field of
-        Text model ->
-            isValidHelper model
-
-        Select model ->
-            isValidHelper model
-
-
-isValidHelper : { a | error : Maybe e } -> Bool
-isValidHelper { error } =
-    error == Nothing
-
-
-throwError : Field -> Field
-throwError field =
-    case field of
-        Text model ->
-            Text (Text.throwError model)
-
-        Select model ->
-            Select (Select.throwError model)
 
 
 clearError : Field -> Field
@@ -153,3 +177,29 @@ mapSelect f field =
 
         _ ->
             field
+
+
+
+-- DECODER --
+
+
+decoder : Decoder Field
+decoder =
+    D.string
+        |> D.field "type"
+        |> D.andThen decoderFromType
+
+
+decoderFromType : String -> Decoder Field
+decoderFromType type_ =
+    case type_ of
+        "text" ->
+            Text.decoder
+                |> D.map Text
+
+        "select" ->
+            Select.decoder
+                |> D.map Select
+
+        _ ->
+            D.fail "Unrecognized form type"

@@ -2,15 +2,14 @@ module Field.Text exposing
     ( Error(..)
     , Model
     , Msg
-    , email
-    , firstName
+    , containsLetters
+    , decoder
     , isEmpty
-    , lastName
-    , phoneNumber
+    , isntValidEmail
+    , name
+    , order
     , submit
-    , throwError
     , update
-    , validate
     , view
     )
 
@@ -25,8 +24,11 @@ import Html.Styled as Html
         )
 import Html.Styled.Attributes as Attrs
 import Html.Styled.Events as Events
+import Json.Decode as D exposing (Decoder)
+import Json.Decode.Pipeline as JDP
 import Json.Encode as E
 import Style
+import Util exposing (requiredMark, toValidation)
 import Validate
 import View.Error as Error
 
@@ -38,11 +40,23 @@ import View.Error as Error
 type alias Model =
     { value : String
     , label : String
+    , name : String
     , validations : List (String -> Maybe Error)
     , error : Maybe Error
     , validateOnUpdate : Bool
     , required : Bool
+    , order : Int
     }
+
+
+order : Model -> Int
+order =
+    .order
+
+
+name : Model -> String
+name =
+    .name
 
 
 type Msg
@@ -73,13 +87,13 @@ errorToString error =
 -- VALIDATION --
 
 
-throwError : Model -> Model
-throwError model =
-    throwErrorHelper model.validations model
+check : Model -> Model
+check model =
+    checkHelper model.validations model
 
 
-throwErrorHelper : List (String -> Maybe Error) -> Model -> Model
-throwErrorHelper validations model =
+checkHelper : List (String -> Maybe Error) -> Model -> Model
+checkHelper validations model =
     case validations of
         firstValidation :: rest ->
             case firstValidation model.value of
@@ -87,38 +101,15 @@ throwErrorHelper validations model =
                     { model | error = Just error }
 
                 Nothing ->
-                    throwErrorHelper rest model
+                    checkHelper rest model
 
         [] ->
             { model | error = Nothing }
 
 
-validate : Model -> Result Model String
-validate model =
-    let
-        checkedModel : Model
-        checkedModel =
-            throwError model
-    in
-    if model.error == Nothing then
-        Ok model.value
-
-    else
-        Err checkedModel
-
-
 isEmpty : Model -> Bool
 isEmpty { value } =
     String.isEmpty value
-
-
-toValidation : ( Error, String -> Bool ) -> String -> Maybe Error
-toValidation ( error, condition ) str =
-    if condition str then
-        Just error
-
-    else
-        Nothing
 
 
 containsLetters : String -> Bool
@@ -153,23 +144,24 @@ isntValidEmail emailStr =
 
 
 submit : Model -> Submission Model
-submit model =
-    case validate model of
-        Err validatedModel ->
-            if model.required then
-                Submission.Failed validatedModel
+submit =
+    submitAfterCheck << check
 
-            else
-                Submission.None
 
-        Ok "" ->
+submitAfterCheck : Model -> Submission Model
+submitAfterCheck model =
+    if model.error == Nothing then
+        if isEmpty model then
             Submission.None
 
-        Ok value ->
-            ( model.label
-            , E.string value
+        else
+            ( model.name
+            , E.string model.value
             )
                 |> Submission.Encoded
+
+    else
+        Submission.Failed model
 
 
 
@@ -186,13 +178,13 @@ update msg model =
                     { model | value = newText }
             in
             if model.validateOnUpdate then
-                throwError newModel
+                check newModel
 
             else
                 newModel
 
         FieldBlurred ->
-            throwError model
+            check model
 
 
 
@@ -203,7 +195,8 @@ view : Model -> Html Msg
 view model =
     div
         [ Attrs.css [ Style.basicMargin ] ]
-        [ Html.text model.label
+        [ Html.text
+            (model.label ++ requiredMark model.required)
         , input
             [ Attrs.css [ Style.basicMargin ]
             , Attrs.value model.value
@@ -217,54 +210,124 @@ view model =
 
 
 
--- HARDCODED DATA --
+-- DECODER --
 
 
-firstName : Model
-firstName =
-    { value = ""
-    , label = "First Name"
-    , validations = []
-    , error = Nothing
-    , validateOnUpdate = False
-    , required = False
-    }
+decoder : Decoder Model
+decoder =
+    D.succeed Model
+        |> JDP.hardcoded ""
+        |> JDP.custom labelDecoder
+        |> JDP.required "name" D.string
+        |> JDP.required "validations" (D.list validationDecoder)
+        |> JDP.hardcoded Nothing
+        |> JDP.custom validateOnUpdateDecoder
+        |> JDP.required "required" D.bool
+        |> JDP.custom orderDecoder
 
 
-lastName : Model
-lastName =
-    { value = ""
-    , label = "Last Name*"
-    , validations =
-        [ ( IsBlank, String.isEmpty ) ]
-            |> List.map toValidation
-    , error = Nothing
-    , validateOnUpdate = False
-    , required = True
-    }
+labelDecoder : Decoder String
+labelDecoder =
+    D.string
+        |> D.field "name"
+        |> D.map labelFromName
 
 
-phoneNumber : Model
-phoneNumber =
-    { value = ""
-    , label = "Phone Number"
-    , validations =
-        [ ( IsntPhoneNumber, containsLetters ) ]
-            |> List.map toValidation
-    , error = Nothing
-    , validateOnUpdate = True
-    , required = False
-    }
+labelFromName : String -> String
+labelFromName name_ =
+    case name_ of
+        "first-name" ->
+            "First Name"
+
+        "last-name" ->
+            "Last Name"
+
+        "gender" ->
+            "Gender"
+
+        "phone-number" ->
+            "Phone Number"
+
+        "email" ->
+            "Email"
+
+        "means-of-contact-preference" ->
+            "Preferred Means of Contact"
+
+        _ ->
+            name_
 
 
-email : Model
-email =
-    { value = ""
-    , label = "Email"
-    , validations =
-        [ ( IsntValidEmail, isntValidEmail ) ]
-            |> List.map toValidation
-    , error = Nothing
-    , validateOnUpdate = False
-    , required = False
-    }
+validationDecoder : Decoder (String -> Maybe Error)
+validationDecoder =
+    D.string
+        |> D.andThen validationDecoderFromString
+        |> D.map toValidation
+
+
+validationDecoderFromString : String -> Decoder ( Error, String -> Bool )
+validationDecoderFromString validation =
+    case validation of
+        "is-blank" ->
+            ( IsBlank, String.isEmpty )
+                |> D.succeed
+
+        "isnt-phone-number" ->
+            ( IsntPhoneNumber, containsLetters )
+                |> D.succeed
+
+        "isnt-valid-email" ->
+            ( IsntValidEmail, isntValidEmail )
+                |> D.succeed
+
+        _ ->
+            D.fail "Unknown Validation"
+
+
+validateOnUpdateDecoder : Decoder Bool
+validateOnUpdateDecoder =
+    D.string
+        |> D.field "name"
+        |> D.map validateOnUpdateFromName
+
+
+validateOnUpdateFromName : String -> Bool
+validateOnUpdateFromName name_ =
+    case name_ of
+        "phone-number" ->
+            True
+
+        _ ->
+            False
+
+
+orderDecoder : Decoder Int
+orderDecoder =
+    D.string
+        |> D.field "name"
+        |> D.map orderFromName
+
+
+orderFromName : String -> Int
+orderFromName name_ =
+    case name_ of
+        "first-name" ->
+            0
+
+        "last-name" ->
+            10
+
+        "gender" ->
+            30
+
+        "phone-number" ->
+            0
+
+        "email" ->
+            10
+
+        "means-of-contact-preference" ->
+            30
+
+        _ ->
+            9001

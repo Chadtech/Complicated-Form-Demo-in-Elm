@@ -8,6 +8,7 @@
         "direct": {
             "Chadtech/elm-bool-extra": "2.1.0",
             "Chadtech/return": "1.0.2",
+            "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "elm/browser": "1.0.0",
             "elm/core": "1.0.0",
             "elm/html": "1.0.0",

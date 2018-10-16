@@ -3,18 +3,16 @@ module Main exposing (main)
 import Browser
 import Css exposing (..)
 import Data.Check as Check
-import Dict exposing (Dict)
-import Field exposing (Field)
-import Field.Select as Select
-import Field.Text as Text
-import Html.Styled as Html exposing (Attribute, Html)
+import Data.Mock
+import Flags exposing (Flags)
+import Form
+import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attrs
 import Html.Styled.Events as Events
 import Json.Decode as D
 import Json.Encode as E
 import Model exposing (Model)
 import Msg exposing (Msg(..))
-import Page exposing (Page(..))
 import Return2 as R2
 import Style
 import View.Error as Error
@@ -24,41 +22,34 @@ import View.Error as Error
 -- MAIN --
 
 
-main : Program D.Value Model Msg
+main : Program D.Value (Result D.Error Model) Msg
 main =
     { init = init
     , view = view
-    , update = update >> (<<) R2.withNoCmd
+    , update =
+        update
+            >> Result.map
+            >> (<<) R2.withNoCmd
     , subscriptions = always Sub.none
     }
         |> Browser.document
 
 
-init : D.Value -> ( Model, Cmd Msg )
+init : D.Value -> ( Result D.Error Model, Cmd Msg )
 init json =
-    { page = ContactInfo
-    , personalInfoFields =
-        [ Text.firstName.label
-        , Text.lastName.label
-        , Select.gender.label
-        ]
-    , contactInfoFields =
-        [ Text.phoneNumber.label
-        , Text.email.label
-        , Select.contactPreference.label
-        ]
-    , form =
-        [ ( Text.firstName.label, Field.Text Text.firstName )
-        , ( Text.lastName.label, Field.Text Text.lastName )
-        , ( Text.phoneNumber.label, Field.Text Text.phoneNumber )
-        , ( Text.email.label, Field.Text Text.email )
-        , ( Select.gender.label, Field.Select Select.gender )
-        , ( Select.contactPreference.label, Field.Select Select.contactPreference )
-        ]
-            |> Dict.fromList
-    , formError = Nothing
-    }
-        |> R2.withNoCmd
+    case D.decodeValue Flags.decoder json of
+        Ok { forms } ->
+            { forms = forms
+            , currentForm = Data.Mock.personalInfo.name
+            , success = Nothing
+            }
+                |> Ok
+                |> R2.withNoCmd
+
+        Err err ->
+            err
+                |> Err
+                |> R2.withNoCmd
 
 
 
@@ -68,31 +59,29 @@ init json =
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        FieldMsg key subMsg ->
-            Model.mapField
+        FormMsg key subMsg ->
+            Model.mapForm
                 key
-                (Field.update subMsg)
+                (Form.update subMsg)
                 model
 
-        NavButtonClicked page ->
+        NavButtonClicked step ->
             let
                 clearedModel : Model
                 clearedModel =
                     Model.clearAllErrors model
             in
-            case Model.validateCurrentPage clearedModel of
+            case Model.checkCurrentForm clearedModel of
                 Check.NoErrors ->
-                    Model.setPage page clearedModel
+                    Model.setCurrentForm step clearedModel
 
                 Check.HasErrors modelWithErrors ->
                     modelWithErrors
 
         SubmitClicked ->
-            case Model.validate model of
+            case Model.submit model of
                 Ok submission ->
-                    Model.setPage
-                        (Page.Success submission)
-                        model
+                    Model.succeed submission model
 
                 Err modelWithErrors ->
                     modelWithErrors
@@ -102,52 +91,68 @@ update msg model =
 -- VIEW --
 
 
-view : Model -> Browser.Document Msg
-view model =
-    { title = "Form Example"
-    , body =
-        [ Html.text "Please fill out my form!"
-        , Html.div
-            []
-            (List.map navButton Page.formPages)
-        , Html.div
-            [ Attrs.css [ Style.basicMargin ] ]
-            (bodyView model)
-        , Error.view
-            (Maybe.map Model.errorToString model.formError)
-        , Html.button
-            [ Events.onClick SubmitClicked ]
-            [ Html.text "Submit Form" ]
-        ]
-            |> List.map Html.toUnstyled
-    }
+view : Result D.Error Model -> Browser.Document Msg
+view result =
+    case result of
+        Ok model ->
+            { title = "Form Example"
+            , body =
+                [ Html.text "Please fill out my form!"
+                , Html.div
+                    []
+                    (List.map navButton (Model.formNames model))
+                , Html.div
+                    [ Attrs.css [ Style.basicMargin ] ]
+                    (bodyView model)
+                , Html.button
+                    [ Events.onClick SubmitClicked ]
+                    [ Html.text "Submit Form" ]
+                ]
+                    |> List.map Html.toUnstyled
+            }
+
+        Err error ->
+            { title = "Form Example - ERROR"
+            , body =
+                [ Html.text
+                    """
+                    Oh no, there was a fatal 
+                    error loading this example
+                    """
+                , Html.text (D.errorToString error)
+                ]
+                    |> List.map Html.toUnstyled
+            }
 
 
-navButton : Page -> Html Msg
+navButton : String -> Html Msg
 navButton page =
     Html.button
         [ Events.onClick (NavButtonClicked page) ]
-        [ Html.text (Page.toString page) ]
+        [ Html.text page ]
 
 
 bodyView : Model -> List (Html Msg)
 bodyView model =
-    case model.page of
-        Success json ->
+    case ( model.success, Model.currentForm model ) of
+        ( Just json, _ ) ->
             [ Html.p
                 [ Attrs.css [ color (hex "#008000") ] ]
-                [ Html.text "Form was submitted! Below is the encoded json:" ]
+                [ Html.text
+                    "Form was submitted! Below is the encoded json:"
+                ]
             , Html.p
                 []
                 [ Html.text (E.encode 0 json) ]
             ]
 
+        ( _, Just form ) ->
+            form
+                |> Form.view
+                |> List.map
+                    (Html.map (FormMsg model.currentForm))
+
         _ ->
-            model
-                |> Model.currentPagesFields
-                |> List.map fieldView
-
-
-fieldView : ( String, Field ) -> Html Msg
-fieldView ( key, field ) =
-    Html.map (FieldMsg key) (Field.view field)
+            [ Error.view
+                (Just "Oops, something went really wrong. Im sorry")
+            ]
