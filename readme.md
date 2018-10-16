@@ -38,8 +38,6 @@ This is a form, written in Elm. Its just meant to be an example of a fairly comp
 - you shouldnt be able to navigate between pages if there are any validation errors on that page
 - the form needs to be encodable to json
 
-
 # Architecture
 
 Each field type is treated as its own little mini-TEA (The Elm Architecture). Each field type lives in a module with its own `view`, `update`, `Model`, and `Msg`. In addition, they all expose a `submit : Model -> Submission Model` function meant to communicate whether its okay to submit this field, and if so provide the field encoded into json.
-
