@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser
 import Css exposing (..)
 import Data.Check as Check
-import Data.Mock
+import Dict
 import Flags exposing (Flags)
 import Form
 import Html.Styled as Html exposing (Html)
@@ -40,7 +40,12 @@ init json =
     case D.decodeValue Flags.decoder json of
         Ok { forms } ->
             { forms = forms
-            , currentForm = Data.Mock.personalInfo.name
+            , currentForm =
+                forms
+                    |> Dict.toList
+                    |> List.head
+                    |> Maybe.map Tuple.first
+                    |> Maybe.withDefault ""
             , success = Nothing
             }
                 |> Ok

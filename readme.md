@@ -34,8 +34,8 @@ This is a form, written in Elm. Its just meant to be an example of a fairly comp
 - it is required for their to be an email or phone number
 - the phone field must validate on every key stroke
 - you cannot navigate between pages if there are any validation errors on that page
-- all the fields are dynamic
-- all the pages are dynamic
+- all the fields are dynamically decoded from json
+- all the pages are dynamically decoded from json
 
 # Architecture
 
