@@ -4,38 +4,26 @@ This is a complicated form written in Elm.
 
 # Background
 
-Recently I consulted a company that used an out-of-the-box solution for a form and it was leading to some problems for them. Ive seen that situation before. My recommendation was that if they want to scale their form code, or if what they have currently isnt working for them, that they should consider rewriteing it from scratch.
+Recently I consulted a company that used an out-of-the-box solution for a form and while it seems to get the job done the code was getting kind of difficult to work with. I proposed that if they plan on scaling their form code, or if its currently leading to problems, that they should consider rewriting it from scratch.
 
 # Why
 
-I think that in practice every form is different from every other form. Every different thing about your form has fundamental implications for how your form should be written. Here are some questions that I think matter for the architecture of your form software:
-
-- Are the fields hardcoded or are they dynamic?
-- Are some fields optional?
-- What does it even mean for a field to be "optional"?
-- During form submission, should untouched fields be excluded or should default values be used?
-- When should fields be validated? On blur? On key stroke? On navigation? On submission?
-- Shoud the form as a whole be validated independently of the fields?
-- Are there different sections in the form?
-- Do all the fields look the same?
-- Do all the fields behave the same?
-- Do field values change data type after validation?
-- What relationship do the field values have with the data type and structure of the submitted data?
-
-Problems arise with out-of-the-box form packages when they assume things about what a form is supposed to be that vary from what you think the form should be. Furthermore, _you_ might even change your mind at some point, which means you should plan for having to go back and change things. Its much easier to change your own familiar and transparent implementation than to try and cope with an opaque package off the internet.
+I think that in practice every form is different from every other form and a lot of these out-of-the-box solutions have implicit assumptions about how your form should be. Its very likely that you will end up fighting with the package you choose. With your own code you can at least make it how you would like in the first place, and when you eventually change your mind about how it should be your own code is transparent enough for you to change it on your own. (then of course, I guess you have to write everything from scratch; how these costs ballance out depends on your project)
 
 # So whats this?
 
-This is a form, written in Elm. Its just meant to be an example of a fairly complicated form. While the UI is dead simple, and the form only has 6 fields, Ive intentionally added every bell and whistle to exaggerate its complexity. Heres the spec:
+This is a form, written in Elm. Its meant to just stand as an example for how a fairly complicated form could be done. By design its meant to _not_ be abstract and decoupled from the main application architecture, but still be scalable.
+
+The UI is dead simple, and the form only has 6 fields, but to make it maximally complicated Ive added every bell and whistle, so hopefully if you want a form with a particular bell or whistle you can see how it could be done in this repo. Heres the spec of the form :
 
 - all the fields are dynamically decoded from json
 - all the pages are dynamically decoded from json
 - some text fields are required
 - some select fields are required
 - sometimes one of two fields are required
-- fields should validate when the user moves away from them
+- some fields should validate when the user moves away from them
 - some fields need to get validated on every key stroke
-- you shouldnt be able to navigate between pages if there are any validation errors on that page
+- pages should validate when you try and navigate, and obstruct navigation when they have errors
 - the form needs to be encodable to json
 
 # Architecture
