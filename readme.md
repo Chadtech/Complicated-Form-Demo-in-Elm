@@ -1,6 +1,6 @@
 # Complicated Form Demo in Elm
 
-This is a complicated form written in Elm. (You can see it live here)[complicated-form-demo-in-elm.surge.sh]
+This is a complicated form written in Elm. [You can see it live here](complicated-form-demo-in-elm.surge.sh)
 
 # Background
 
@@ -30,4 +30,4 @@ The UI is dead simple, and the form only has 6 fields, but to make it maximally 
 
 Each field type is treated as its own little mini-TEA (The Elm Architecture). Each field type lives in a module with its own `view`, `update`, `Model`, and `Msg`. In addition, they all expose a `submit : Model -> Submission Model` function meant to communicate whether its okay to submit this field, and if so provide the field encoded into json.
 
-If you are familiar with (rtfeldman's spa example)[https://github.com/rtfeldman/elm-spa-example/tree/master/src], then you might be familiar with the idea that you could represent your pages as `type Page = Home Home.Model | ..`, where each page has its own module that is its own nested form of TEA. This form example does the same thing with fields: theres a custom type that represents all the varieties of `Field`, pointing to its own module, wherein each one is its own nested form of `TEA`.
+If you are familiar with [rtfeldman's spa example](https://github.com/rtfeldman/elm-spa-example/tree/master/src), then you might be familiar with the idea that you could represent your pages as `type Page = Home Home.Model | ..`, where each page has its own module that is its own nested form of TEA. This form example does the same thing with fields: theres a custom type that represents all the varieties of `Field`, pointing to its own module, wherein each one is its own nested form of `TEA`.
