@@ -12,7 +12,7 @@ I think that in practice every form is different from every other form and a lot
 
 # So whats this?
 
-This is a form, written in Elm. Its meant to just stand as an example for how a fairly complicated form could be done. By design its meant to _not_ be abstract and decoupled from the main application architecture, but still be scalable.
+This is a form, written in Elm. Its meant to just stand as an example for how anyone could choose to do a fairly complicated form project. By design the form logic meant to _not_ be abstract and decoupled from the main application architecture. Its meant to be open and refactorable which I think leads to maintainability and scalability.
 
 The UI is dead simple, and the form only has 6 fields, but to make it maximally complicated Ive added every bell and whistle, so hopefully if you want a form with a particular bell or whistle you can see how it could be done in this repo. Heres the spec of the form :
 
@@ -29,3 +29,5 @@ The UI is dead simple, and the form only has 6 fields, but to make it maximally 
 # Architecture
 
 Each field type is treated as its own little mini-TEA (The Elm Architecture). Each field type lives in a module with its own `view`, `update`, `Model`, and `Msg`. In addition, they all expose a `submit : Model -> Submission Model` function meant to communicate whether its okay to submit this field, and if so provide the field encoded into json.
+
+If you are familiar with (rtfeldman's spa example)[https://github.com/rtfeldman/elm-spa-example/tree/master/src], then you might be familiar with the idea that you could represent your pages as `type Page = Home Home.Model | ..`, where each page has its own module that is its own nested form of TEA. This form example does the same thing with fields: theres a custom type that represents all the varieties of `Field`, pointing to its own module, wherein each one is its own nested form of `TEA`.
