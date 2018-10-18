@@ -4,7 +4,7 @@ This is a complicated form written in Elm. (You can see it live here)[complicate
 
 # Background
 
-Recently I consulted a company that used an out-of-the-box solution for a form and while it seems to get the job done the code was getting kind of difficult to work with. I proposed that if they plan on scaling their form code, or if its currently leading to problems, that they should consider rewriting it from scratch.
+Recently I consulted a company that used an out-of-the-box solution for a form and while it seems to get the job done the code was getting kind of difficult to work with. I proposed that if they plan on scaling their form code, or if its currently leading to problems, that they should consider rewriting it from scratch. This repo is meant to be an example of how it could be done from scratch.
 
 # Why
 
